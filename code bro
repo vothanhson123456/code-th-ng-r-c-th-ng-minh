@@ -1,0 +1,78 @@
+#include <Servo.h>
+Servo myServo;
+int servoPin = 8;
+int pos = 0;
+
+const int trig = 7;     
+const int echo = 4;  
+bool napMo = false;     // Biến trạng thái nắp đã mở
+
+float GetDistance() {
+  unsigned long duration;
+  float distanceCm;
+
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(2);
+  digitalWrite(trig, LOW);
+
+  duration = pulseIn(echo, HIGH);
+  distanceCm = duration * 0.0343 / 2;
+  delay(10);
+
+  return distanceCm;
+}
+
+float GetAverageDistance(int samples = 5) {
+  float sum = 0;
+  for (int i = 0; i < samples; i++) {
+    sum += GetDistance();
+  }
+  return sum / samples;
+}
+
+void setup() 
+{
+  Serial.begin(9600);             // Giao tiếp Serial với máy tính
+  myServo.attach(servoPin);       // Gắn servo vào chân servoPin
+  myServo.write(0);               // Đặt servo về góc 0 độ
+  pinMode(trig, OUTPUT);          // Chân phát sóng siêu âm
+  pinMode(echo, INPUT);           // Chân nhận sóng siêu âm
+}
+
+void loop()
+{
+  long distance = GetAverageDistance();
+  if (distance < 25 && napMo == false)
+  {
+    mo_thung_rac();
+    delay(4000);        // thời gian nắp thùng rác mở là 4s
+    dong_thung_rac(); 
+    napMo = true;       // Đánh dấu nắp đã mở
+  }
+
+  if (distance > 35)       // Reset trạng thái sau khi người rời đi
+  {
+    napMo = false;
+  }
+  delay(100);
+}
+
+void mo_thung_rac()
+{
+  for (pos = 0; pos <= 135; pos += 1)   // Góc mở của servo (nắp thùng rác) từ 0-180
+  {
+    myServo.write(pos);                // yêu cầu servo chuyển đến vị trí trong biến 'pos'
+    delay(4);                         // điều chỉnh thông số này để thay đổi tốc độ mở thùng rác
+  }
+}
+
+void dong_thung_rac()
+{
+  for (pos = 135; pos >= 0; pos -= 1)  // Góc mở của servo (nắp thùng rác) từ 0-180
+  {
+    myServo.write(pos);              // yêu cầu servo chuyển đến vị trí trong biến 'pos'
+    delay(5);                         // điều chỉnh thông số này để thay đổi tốc độ đóng thùng rác
+  }
+}
